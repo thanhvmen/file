@@ -1,0 +1,140 @@
+<?php
+error_reporting(0);
+extract($_REQUEST);
+
+header('Content-Type: application/json');
+
+if ($mail) {
+  $UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'";
+
+  $cc_file = 'cc/'.md5($mail).'.txt';
+
+  file_put_contents($cookie_file, '');
+
+  $html = get('https://signup.mail.com/');
+  if (preg_match('/"accessToken":"(.*?)".*?"clientCredentialGuid":"(.*?)"/', $html,$matches)) {
+    $x = $matches[1];$y=$matches[2];
+    $check = check_maildotcom($mail, $x, $y);
+
+  if (!$check) {
+    echo 'NO';
+  }else{
+
+     $json = json_decode($check);
+      if ($json->emailAddressAvailable !== false) {
+
+    echo '{"data":"1"}';
+
+  }else{
+    echo '{"data":"0"}';
+  }
+  }
+  }
+
+  // $check = json_decode(check_maildotcom($mail));
+  // if (!$check) {
+  //   echo 'NO';
+  // }else{
+  //     if ($check->emailAddressAvailable !== false) {
+
+  //   echo '{"data":"1"}';
+
+  // }else{
+  //   echo '{"data":"0"}';
+  // }
+  // }
+
+
+}
+function check_maildotcom( $xmail, $x, $y)
+{
+
+global $cc_file;
+$ch = curl_init();
+
+curl_setopt($ch, CURLOPT_URL, 'https://onereg-email-suggest.mail.com/email-alias/availability');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, "{\"emailAddress\":\"".$xmail."\",\"countryCode\":\"US\",\"suggestionProducts\":[\"mailcomFree\"],\"maxResultCountPerProduct\":\"10\",\"mdhMaxResultCount\":\"5\",\"requestedEmailAddressProduct\":\"mailcomFree\"}");
+
+curl_setopt($ch, CURLOPT_ENCODING, 'gzip, deflate');
+
+$headers = array();
+$headers[] = 'Connection: keep-alive';
+$headers[] = 'X-Ui-App: @umreg/registration-app2/5.14.0';
+$headers[] = 'Authorization: Bearer '.$x;
+
+$headers[] = 'Content-Type: application/json';
+$headers[] = 'Accept: application/json, text/plain, */*';
+$headers[] = 'Sec-Fetch-Dest: empty';
+$headers[] = 'X-Ccguid: '.$y;
+$headers[] = 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36';
+
+$headers[] = 'Origin: https://signup.mail.com';
+$headers[] = 'Sec-Fetch-Site: same-site';
+$headers[] = 'Sec-Fetch-Mode: cors';
+$headers[] = 'Referer: https://signup.mail.com/';
+$headers[] = 'Accept-Language: en-US,en;q=0.9';
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+//
+
+curl_setopt($ch, CURLOPT_HEADER, 0); 
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_COOKIEFILE, realpath($cc_file)); 
+curl_setopt($ch, CURLOPT_COOKIEJAR, realpath($cc_file)); 
+
+curl_setopt( $ch, CURLOPT_COOKIESESSION, true );
+// if($session){
+  
+//   curl_setopt($ch, CURLOPT_COOKIE, $session);
+// }
+curl_setopt($ch,CURLOPT_ENCODING , 'gzip'); 
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1); 
+
+//
+$result = curl_exec($ch);
+if (curl_errno($ch)) {
+    echo 'Error:' . curl_error($ch);
+}
+curl_close($ch);
+return $result;
+}
+
+
+function get($url, $session = 0 ,$ref=0) { 
+  global $UA;
+  global $cc_file;
+$headers = Array(
+'Accept: image/gif, image/x-bitmap, image/jpeg, image/pjpeg',
+'Connection: Keep-Alive',
+'Content-type: application/x-www-form-urlencoded;charset=UTF-8'
+);
+$process = curl_init($url); 
+curl_setopt($process, CURLOPT_HTTPHEADER, $headers); 
+curl_setopt($process, CURLOPT_HEADER, 0); 
+if($ref)
+{
+    curl_setopt($process, CURLOPT_REFERER, $ref);
+}
+curl_setopt($process, CURLOPT_USERAGENT, $UA); 
+curl_setopt( $process, CURLOPT_COOKIESESSION, true );
+if($session){
+  
+  curl_setopt($process, CURLOPT_COOKIE, $session);
+}
+curl_setopt($process, CURLOPT_SSL_VERIFYPEER, false);
+
+curl_setopt($process, CURLOPT_COOKIEFILE, realpath($cc_file)); 
+curl_setopt($process, CURLOPT_COOKIEJAR, realpath($cc_file)); 
+curl_setopt($process,CURLOPT_ENCODING , 'gzip'); 
+curl_setopt($process, CURLOPT_TIMEOUT, 30); 
+curl_setopt($process, CURLOPT_RETURNTRANSFER, 1); 
+curl_setopt($process, CURLOPT_FOLLOWLOCATION, 1); 
+$return = curl_exec($process); 
+// echo curl_getinfo($process)['url']; echo'|';
+// echo curl_getinfo($process)['http_code'];
+// echo '<br />';
+curl_close($process); 
+return $return; 
+} 
+
